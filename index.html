@@ -4,71 +4,214 @@
     <title>NestJS Chat</title>
     <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
     <style>
-        #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
-        .message { margin: 5px 0; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #messages { 
+            height: 400px; 
+            overflow-y: scroll; 
+            border: 1px solid #ccc; 
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .message { 
+            margin: 8px 0;
+            padding: 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        #rooms { 
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #chat {
+            display: none;
+        }
+
+        .system-message {
+            color: #666;
+            font-style: italic;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .username {
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        #currentRoom {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        #messageInput {
+            width: 70%;
+        }
     </style>
 </head>
 <body>
     <div id="login">
+        <h2>Join Chat</h2>
         <input type="text" id="username" placeholder="Enter username">
+        <input type="text" id="room" placeholder="Enter room (optional)">
         <button onclick="join()">Join Chat</button>
     </div>
 
-    <div id="chat" style="display: none;">
+    <div id="chat">
+        <div id="rooms">
+            <div id="currentRoom"></div>
+            <input type="text" id="newRoom" placeholder="Enter room name">
+            <button onclick="joinRoom()">Join Room</button>
+        </div>
         <div id="messages"></div>
-        <input type="text" id="messageInput" placeholder="Type a message">
-        <button onclick="sendMessage()">Send</button>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type a message" onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Send</button>
+        </div>
     </div>
 
     <script>
         const socket = io('http://localhost:3000');
+        let currentRoom = '';
         let username = '';
 
         function join() {
-            username = document.getElementById('username').value;
-            if (username.trim()) {
-                socket.emit('join', username);
+            username = document.getElementById('username').value.trim();
+            const room = document.getElementById('room').value.trim() || 'general';
+            
+            if (username) {
+                socket.emit('join', { username, room });
+                currentRoom = room;
                 document.getElementById('login').style.display = 'none';
                 document.getElementById('chat').style.display = 'block';
+                updateCurrentRoomDisplay();
+            } else {
+                alert('Please enter a username');
             }
+        }
+
+        function updateCurrentRoomDisplay() {
+            document.getElementById('currentRoom').textContent = `Current Room: ${currentRoom}`;
+        }
+
+        function joinRoom() {
+            const newRoom = document.getElementById('newRoom').value.trim();
+            if (newRoom) {
+                socket.emit('joinRoom', newRoom);
+                currentRoom = newRoom;
+                document.getElementById('newRoom').value = '';
+                updateCurrentRoomDisplay();
+                clearMessages();
+            }
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
         }
 
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
-            const message = messageInput.value;
-            if (message.trim()) {
-                socket.emit('message', message);
+            const content = messageInput.value.trim();
+            
+            if (content) {
+                socket.emit('message', { content, room: currentRoom });
                 messageInput.value = '';
             }
         }
 
-        socket.on('message', (data) => {
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            return new Date(timestamp).toLocaleTimeString();
+        }
+
+        function addMessage(data, type = 'user') {
             const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML += `
-                <div class="message">
-                    <strong>${data.username}</strong>: ${data.message}
-                    <small>(${new Date(data.timestamp).toLocaleTimeString()})</small>
-                </div>
-            `;
+            const messageDiv = document.createElement('div');
+            
+            if (type === 'system') {
+                messageDiv.className = 'message system-message';
+                messageDiv.textContent = data;
+            } else {
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = `
+                    <span class="username">${data.username}</span>: 
+                    ${data.content}
+                    <span class="timestamp">(${formatTimestamp(data.timestamp)})</span>
+                `;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Socket event listeners
+        socket.on('message', (data) => {
+            addMessage(data);
         });
 
         socket.on('userJoined', (username) => {
-            const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML += `
-                <div class="message" style="color: green;">
-                    ${username} joined the chat
-                </div>
-            `;
+            addMessage(`${username} joined the chat`, 'system');
         });
 
         socket.on('userLeft', (username) => {
-            const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML += `
-                <div class="message" style="color: red;">
-                    ${username} left the chat
-                </div>
-            `;
+            addMessage(`${username} left the chat`, 'system');
+        });
+
+        socket.on('recentMessages', (messages) => {
+            clearMessages();
+            messages.forEach(message => addMessage(message));
+        });
+
+        // Error handling
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            alert('Failed to connect to the server');
+        });
+
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            alert('An error occurred');
         });
     </script>
 </body>

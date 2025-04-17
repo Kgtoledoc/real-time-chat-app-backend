@@ -1,16 +1,39 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Message, MessageDocument } from 'src/schema/message.schema';
 
 @Injectable()
 export class ChatService {
-    private messages: string[] = []
+    constructor(
+        @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
+    ) { }
 
-    saveMessage(message: string) {
-        this.messages.push(message);
-
-        // En esta parte puedes almacenar los mensages en un a base de datos
+    async createMessage(
+        username: string,
+        content: string,
+        room?: string,
+    ): Promise<Message> {
+        const newMessage = new this.messageModel({
+            username,
+            content,
+            room,
+            timestamp: new Date()
+        });
+        return newMessage.save()
     }
 
-    getMessages():  string[] {
-        return this.messages;
+    async getRecentMessages(room?: string, limit: number = 50): Promise<Message[]> {
+        const query = room ? { room } : {};
+        return this.messageModel.find(query).sort({ timestamp: -1 }).limit(limit).exec()
     }
+
+    async getRoomMessages(room: string): Promise<Message[]> {
+        return this.messageModel.find({ room }).sort({ timestamp: 1 }).exec()
+    }
+
+    async deleteMessage(id: string) {
+        return this.messageModel.findByIdAndDelete(id).exec()
+    }
+
 }
