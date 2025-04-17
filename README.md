@@ -67,7 +67,7 @@ Ingresar un nombre de usuario
 
 Comenzar a chatear
 
-typescript
+```typescript
 // Ejemplo de conexión desde el cliente
 const socket = io('http://localhost:3000');
 
@@ -78,6 +78,7 @@ socket.emit('message', 'Hola mundo!');
 socket.on('message', (data) => {
     console.log(`${data.username}: ${data.message}`);
 });
+```
 ## 🔄 Estructura del Proyecto
 ```plain text
 nest-chat-app/
@@ -122,5 +123,5 @@ Abre un Pull Request
 Este proyecto está bajo la Licencia MIT - ver el archivo  para más detalles.
 
 ## 📞 Contacto
-Tu Nombre - Kevin Toledo
-⌨️ con ❤️ Giok3r
+Kevin Toledo
+⌨️ con ❤️
