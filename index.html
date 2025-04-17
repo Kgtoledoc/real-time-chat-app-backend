@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NestJS Chat</title>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <style>
+        #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+        .message { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div id="login">
+        <input type="text" id="username" placeholder="Enter username">
+        <button onclick="join()">Join Chat</button>
+    </div>
+
+    <div id="chat" style="display: none;">
+        <div id="messages"></div>
+        <input type="text" id="messageInput" placeholder="Type a message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:3000');
+        let username = '';
+
+        function join() {
+            username = document.getElementById('username').value;
+            if (username.trim()) {
+                socket.emit('join', username);
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('chat').style.display = 'block';
+            }
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value;
+            if (message.trim()) {
+                socket.emit('message', message);
+                messageInput.value = '';
+            }
+        }
+
+        socket.on('message', (data) => {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `
+                <div class="message">
+                    <strong>${data.username}</strong>: ${data.message}
+                    <small>(${new Date(data.timestamp).toLocaleTimeString()})</small>
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        socket.on('userJoined', (username) => {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `
+                <div class="message" style="color: green;">
+                    ${username} joined the chat
+                </div>
+            `;
+        });
+
+        socket.on('userLeft', (username) => {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `
+                <div class="message" style="color: red;">
+                    ${username} left the chat
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
