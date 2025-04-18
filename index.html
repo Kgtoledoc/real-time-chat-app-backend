@@ -199,9 +199,10 @@
         }
 
         function initializeSocket() {
+            console.log('Initializing socket with token:', token);
             socket = io('http://localhost:3000', {
                 auth: {
-                    token: token, // Configurar el token en el socket
+                    token: `Bearer ${token}`, // Configurar el token en el socket
                 },
             });
 

@@ -18,16 +18,20 @@ export class AuthService {
         console.log('User:', user);
         console.log('Password:', password);
         console.log('Hashed Password:', user?.password);
-        console.log('Password Match:', user?.password ? await bcrypt.compare("test", user.password) : false);
-        if (user && (await bcrypt.compare(password, user.password))) {
-            // Exclude the password field from the returned user object
-            const { password, ...result } = user;
-            return result;
+
+        if (user) {
+            const isPasswordMatch = await bcrypt.compare(password, user.password);
+            console.log('Password Match:', isPasswordMatch);
+            if (isPasswordMatch) {
+                const { password, ...result } = user;
+                return result;
+            }
         }
         return null;
     }
 
     async login(user: any) {
+        console.log('Logging in user:', user);
         const payload = { username: user.username, sub: user._id };
         return {
             access_token: this.jwtService.sign(payload),
@@ -39,6 +43,7 @@ export class AuthService {
             throw new Error('User already exists');
         }
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log('Hashed Password:', hashedPassword);
         return this.usersService.create(username, hashedPassword);
     }
     async getUserFromToken(token: string) {
