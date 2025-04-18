@@ -1,99 +1,108 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>NestJS Chat</title>
-    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        #messages { 
-            height: 400px; 
-            overflow-y: scroll; 
-            border: 1px solid #ccc; 
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 5px;
-        }
-
-        .message { 
-            margin: 8px 0;
-            padding: 8px;
-            background-color: #f0f0f0;
-            border-radius: 4px;
-        }
-
-        #rooms { 
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #f8f8f8;
-            border-radius: 5px;
-        }
-
-        input[type="text"] {
-            padding: 8px;
-            margin: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 200px;
-        }
-
-        button {
-            padding: 8px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        #chat {
-            display: none;
-        }
-
-        .system-message {
-            color: #666;
-            font-style: italic;
-        }
-
-        .timestamp {
-            font-size: 0.8em;
-            color: #666;
-        }
-
-        .username {
-            font-weight: bold;
-            color: #2196F3;
-        }
-
-        #currentRoom {
-            font-weight: bold;
-            color: #4CAF50;
-            margin-bottom: 10px;
-        }
-
-        #messageInput {
-            width: 70%;
-        }
-    </style>
-</head>
+    <head>
+        <title>NestJS Chat</title>
+        <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+    
+            #messages { 
+                height: 400px; 
+                overflow-y: scroll; 
+                border: 1px solid #ccc; 
+                padding: 15px;
+                margin-bottom: 15px;
+                border-radius: 5px;
+            }
+    
+            .message { 
+                margin: 8px 0;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border-radius: 4px;
+            }
+    
+            #rooms { 
+                margin-bottom: 15px;
+                padding: 10px;
+                background-color: #f8f8f8;
+                border-radius: 5px;
+            }
+    
+            input[type="text"], input[type="password"] {
+                padding: 8px;
+                margin: 5px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                width: 200px;
+            }
+    
+            button {
+                padding: 8px 15px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+    
+            button:hover {
+                background-color: #45a049;
+            }
+    
+            #chat {
+                display: none;
+            }
+    
+            .system-message {
+                color: #666;
+                font-style: italic;
+            }
+    
+            .timestamp {
+                font-size: 0.8em;
+                color: #666;
+            }
+    
+            .username {
+                font-weight: bold;
+                color: #2196F3;
+            }
+    
+            #currentRoom {
+                font-weight: bold;
+                color: #4CAF50;
+                margin-bottom: 10px;
+            }
+    
+            #messageInput {
+                width: 70%;
+            }
+        </style>
+    </head>
 <body>
-    <div id="login">
-        <h2>Join Chat</h2>
-        <input type="text" id="username" placeholder="Enter username">
-        <input type="text" id="room" placeholder="Enter room (optional)">
-        <button onclick="join()">Join Chat</button>
+    <div id="register">
+        <h2>Register</h2>
+        <input type="text" id="regUsername" placeholder="Enter username">
+        <input type="password" id="regPassword" placeholder="Enter password">
+        <button onclick="register()">Register</button>
+        <p>Already have an account? <a href="#" onclick="showLogin()">Login here</a></p>
     </div>
 
-    <div id="chat">
+    <div id="login" style="display: none;">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Enter username">
+        <input type="password" id="password" placeholder="Enter password">
+        <button onclick="login()">Login</button>
+        <p>Don't have an account? <a href="#" onclick="showRegister()">Register here</a></p>
+    </div>
+
+    <div id="chat" style="display: none;">
         <div id="rooms">
             <div id="currentRoom"></div>
             <input type="text" id="newRoom" placeholder="Enter room name">
@@ -107,27 +116,123 @@
     </div>
 
     <script>
-        const socket = io('http://localhost:3000');
+        let socket;
         let currentRoom = '';
         let username = '';
+        let token = '';
 
-        function join() {
-            username = document.getElementById('username').value.trim();
-            const room = document.getElementById('room').value.trim() || 'general';
-            
-            if (username) {
-                socket.emit('join', { username, room });
-                currentRoom = room;
-                document.getElementById('login').style.display = 'none';
-                document.getElementById('chat').style.display = 'block';
-                updateCurrentRoomDisplay();
+        async function register() {
+            const regUsername = document.getElementById('regUsername').value.trim();
+            const regPassword = document.getElementById('regPassword').value.trim();
+
+            if (regUsername && regPassword) {
+                try {
+                    // Realizar una solicitud al backend para registrar al usuario
+                    const response = await fetch('http://localhost:3000/auth/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username: regUsername, password: regPassword }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Registration failed');
+                    }
+
+                    alert('Registration successful! You can now log in.');
+                    showLogin();
+                } catch (error) {
+                    alert('Registration failed: ' + error.message);
+                }
             } else {
-                alert('Please enter a username');
+                alert('Please enter both username and password');
             }
         }
 
-        function updateCurrentRoomDisplay() {
-            document.getElementById('currentRoom').textContent = `Current Room: ${currentRoom}`;
+        function showRegister() {
+            document.getElementById('register').style.display = 'block';
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('chat').style.display = 'none';
+        }
+
+        function showLogin() {
+            document.getElementById('register').style.display = 'none';
+            document.getElementById('login').style.display = 'block';
+            document.getElementById('chat').style.display = 'none';
+        }
+
+        async function login() {
+            username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (username && password) {
+                try {
+                    // Realizar una solicitud al backend para obtener el token JWT
+                    const response = await fetch('http://localhost:3000/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username, password }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Invalid credentials');
+                    }
+
+                    const data = await response.json();
+                    token = data.access_token;
+
+                    // Inicializar el socket después de obtener el token
+                    initializeSocket();
+
+                    // Mostrar la interfaz de chat
+                    document.getElementById('login').style.display = 'none';
+                    document.getElementById('chat').style.display = 'block';
+                } catch (error) {
+                    alert('Login failed: ' + error.message);
+                }
+            } else {
+                alert('Please enter both username and password');
+            }
+        }
+
+        function initializeSocket() {
+            socket = io('http://localhost:3000', {
+                auth: {
+                    token: token, // Configurar el token en el socket
+                },
+            });
+
+            // Socket event listeners
+            socket.on('message', (data) => {
+                addMessage(data);
+            });
+
+            socket.on('userJoined', (username) => {
+                addMessage(`${username} joined the chat`, 'system');
+            });
+
+            socket.on('userLeft', (username) => {
+                addMessage(`${username} left the chat`, 'system');
+            });
+
+            socket.on('recentMessages', (messages) => {
+                clearMessages();
+                messages.forEach((message) => addMessage(message));
+            });
+
+            // Error handling
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                alert('Failed to connect to the server');
+            });
+
+            socket.on('error', (error) => {
+                console.error('Socket error:', error);
+                alert('An error occurred');
+            });
         }
 
         function joinRoom() {
@@ -141,6 +246,10 @@
             }
         }
 
+        function updateCurrentRoomDisplay() {
+            document.getElementById('currentRoom').textContent = `Current Room: ${currentRoom}`;
+        }
+
         function clearMessages() {
             document.getElementById('messages').innerHTML = '';
         }
@@ -148,7 +257,7 @@
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const content = messageInput.value.trim();
-            
+
             if (content) {
                 socket.emit('message', { content, room: currentRoom });
                 messageInput.value = '';
@@ -168,7 +277,7 @@
         function addMessage(data, type = 'user') {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
-            
+
             if (type === 'system') {
                 messageDiv.className = 'message system-message';
                 messageDiv.textContent = data;
@@ -180,39 +289,13 @@
                     <span class="timestamp">(${formatTimestamp(data.timestamp)})</span>
                 `;
             }
-            
+
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // Socket event listeners
-        socket.on('message', (data) => {
-            addMessage(data);
-        });
-
-        socket.on('userJoined', (username) => {
-            addMessage(`${username} joined the chat`, 'system');
-        });
-
-        socket.on('userLeft', (username) => {
-            addMessage(`${username} left the chat`, 'system');
-        });
-
-        socket.on('recentMessages', (messages) => {
-            clearMessages();
-            messages.forEach(message => addMessage(message));
-        });
-
-        // Error handling
-        socket.on('connect_error', (error) => {
-            console.error('Connection error:', error);
-            alert('Failed to connect to the server');
-        });
-
-        socket.on('error', (error) => {
-            console.error('Socket error:', error);
-            alert('An error occurred');
-        });
+        // Mostrar la pantalla de registro al cargar la página
+        showRegister();
     </script>
 </body>
 </html>

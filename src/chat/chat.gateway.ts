@@ -1,6 +1,10 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io'
+import { UnauthorizedException, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   cors: {
@@ -8,16 +12,34 @@ import { Server, Socket } from 'socket.io'
   }
 }
 )
+
+@UseGuards(JwtAuthGuard)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
   @WebSocketServer()
   server: Server;
 
   private users: Map<string, {username: string, room?: string}> = new Map()
 
-  constructor(private chatService: ChatService) {}
+  constructor(private chatService: ChatService, private jwtService: JwtService) {}
 
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`)
+    try {
+      const token = client.handshake.auth.token;
+      if (!token){
+        throw new UnauthorizedException('Token not provided');
+      }
+
+      const decoded = this.jwtService.verify(token);
+      const user = decoded.username;
+
+      this.users.set(client.id, {username: user});
+      console.log(`User ${user} connected with ID: ${client.id}`);
+    } catch (error) {
+      console.error('Error during connection:', error.message);
+      client.disconnect();
+      throw new UnauthorizedException('Invalid token');
+    }
+
   }
 
   handleDisconnect(client: Socket) {
@@ -25,7 +47,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
     if(userData){
       const { username, room } = userData;
       this.users.delete(client.id);
-      this.server.to(room!).emit('userLeft', username);
+      if (room) {
+        this.server.to(room).emit('userLeft', username);
+      }
+      console.log(`User ${username} disconnected with ID: ${client.id}`);
     }
   }
 
