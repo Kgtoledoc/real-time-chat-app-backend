@@ -14,25 +14,28 @@ import { JwtService } from '@nestjs/jwt';
 )
 
 @UseGuards(JwtAuthGuard)
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private users: Map<string, {username: string, room?: string}> = new Map()
+  private users: Map<string, { username: string, room?: string }> = new Map()
 
-  constructor(private chatService: ChatService, private jwtService: JwtService) {}
+  constructor(private chatService: ChatService, private jwtService: JwtService) { }
 
   handleConnection(client: Socket) {
     try {
       const token = client.handshake.auth.token;
-      if (!token){
+      console.log('Token:', token);
+      if (!token) {
         throw new UnauthorizedException('Token not provided');
       }
 
       const decoded = this.jwtService.verify(token);
+      console.log('Decoded token:', decoded);
       const user = decoded.username;
+      console.log('User from token:', user);
 
-      this.users.set(client.id, {username: user});
+      this.users.set(client.id, { username: user });
       console.log(`User ${user} connected with ID: ${client.id}`);
     } catch (error) {
       console.error('Error during connection:', error.message);
@@ -44,7 +47,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
   handleDisconnect(client: Socket) {
     const userData = this.users.get(client.id);
-    if(userData){
+    if (userData) {
       const { username, room } = userData;
       this.users.delete(client.id);
       if (room) {
@@ -55,9 +58,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
   }
 
   @SubscribeMessage('join')
-  async handleJoin(client: Socket, data: {username: string; room?: string}) {
+  async handleJoin(client: Socket, data: { username: string; room?: string }) {
     const { username, room } = data;
-    this.users.set(client.id, {username, room});
+    this.users.set(client.id, { username, room });
 
     if (room) {
       client.join(room);
@@ -75,34 +78,36 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
     client: Socket, data: { content: string; room?: string },
   ) {
     const userData = this.users.get(client.id);
-    if (userData) {
-      const { username, room } = userData;
-      const savedMessage = await this.chatService.createMessage(
-        username,
-        data.content,
-        room,
-      );
+    if (!userData) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const { username, room } = userData;
+    const savedMessage = await this.chatService.createMessage(
+      username,
+      data.content,
+      room,
+    );
 
-      const messageData = {
-        id: savedMessage._id,
-        username,
-        content: data.content,
-        timestamp: savedMessage.timestamp,
-        room,
-      };
+    const messageData = {
+      id: savedMessage._id,
+      username,
+      content: data.content,
+      timestamp: savedMessage.timestamp,
+      room,
+    };
 
-      if (room) {
-        this.server.to(room).emit('message', messageData);
-      } else {
-        this.server.emit('message', messageData);
-      }
+    if (room) {
+      this.server.to(room).emit('message', messageData);
+    } else {
+      this.server.emit('message', messageData);
     }
   }
 
+
   @SubscribeMessage('joinRoom')
-  async handleJoinRoom(client: Socket, room: string){
+  async handleJoinRoom(client: Socket, room: string) {
     const userData = this.users.get(client.id);
-    if(userData) {
+    if (userData) {
       const oldRoom = userData.room;
       if (oldRoom) {
         client.leave(oldRoom);
@@ -117,5 +122,5 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
   }
 
-    
+
 }

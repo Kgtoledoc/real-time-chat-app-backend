@@ -5,7 +5,6 @@ export type MessageDocument = Message & Document;
 
 @Schema({ timestamps: true})
 export class Message {
-  @Prop({ type: Types.ObjectId, auto: true })
   _id: Types.ObjectId;
   
   @Prop({ required: true })

@@ -29,7 +29,7 @@ export class ChatService {
     }
 
     async getRoomMessages(room: string): Promise<Message[]> {
-        return this.messageModel.find({ room }).sort({ timestamp: 1 }).exec()
+        return this.messageModel.find({ room }).sort({ timestamp: -1 }).exec()
     }
 
     async deleteMessage(id: string) {
