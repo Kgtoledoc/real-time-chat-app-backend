@@ -7,7 +7,7 @@ import { LoginDto, RegisterDto } from './dto/auth.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService,
-    private readonly usersService: UsersService, // Inject the AuthService to handle authentication logic 
+    
   ) {}
   
   @Post('register')

@@ -1,11 +1,13 @@
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, OnGatewayConnection, OnGatewayDisconnect, WsException } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io'
-import { UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Logger, UnauthorizedException, UseFilters, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
+import { WsExceptionFilter } from 'src/common/filters/ws-exception.filter';
 
+@UseFilters(new WsExceptionFilter())
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -17,6 +19,8 @@ import { JwtService } from '@nestjs/jwt';
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
+
+  private readonly logger = new Logger(ChatGateway.name);
 
   private users: Map<string, { username: string, room?: string }> = new Map()
 
@@ -77,10 +81,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleMessage(
     client: Socket, data: { content: string; room?: string },
   ) {
+    try{
     const userData = this.users.get(client.id);
     if (!userData) {
       throw new UnauthorizedException('User not authenticated');
     }
+    if (!data.content) {
+      throw new WsException('Message content is required');
+    }
+    if (data.content.length > 500) {
+      throw new Error('Message content exceeds maximum length of 500 characters');
+    }
+    if (data.room && data.room.length > 50) {
+      throw new Error('Room name exceeds maximum length of 50 characters');
+    }
+
     const { username, room } = userData;
     const savedMessage = await this.chatService.createMessage(
       username,
@@ -101,6 +116,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else {
       this.server.emit('message', messageData);
     }
+  } catch (error) { 
+    this.logger.error(`Error handling message: ${error.message}`);
+    throw error;
+  }
   }
 
 
