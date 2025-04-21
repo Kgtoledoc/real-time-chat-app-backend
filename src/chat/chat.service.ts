@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Message, MessageDocument } from 'src/chat/schema/message.schema';
+import { EncryptionService } from 'src/common/encryption.service';
 
 @Injectable()
 export class ChatService {
     constructor(
         @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
+        private readonly encryptionService: EncryptionService,
     ) { }
 
     async createMessage(
@@ -14,9 +16,10 @@ export class ChatService {
         content: string,
         room?: string,
     ): Promise<Message> {
+        const encryptedContent = this.encryptionService.encrypt(content);
         const newMessage = new this.messageModel({
             username,
-            content,
+            content: encryptedContent,
             room,
             timestamp: new Date()
         });
@@ -25,7 +28,13 @@ export class ChatService {
 
     async getRecentMessages(room?: string, limit: number = 50): Promise<Message[]> {
         const query = room ? { room } : {};
-        return this.messageModel.find(query).sort({ timestamp: -1 }).limit(limit).exec()
+        const messages = await this.messageModel.find(query).sort({ timestamp: -1 }).limit(limit).exec()
+
+        return messages.map((message) => ({
+            ...message,
+            content: this.encryptionService.decrypt(message.content),
+        }));
+
     }
 
     async getRoomMessages(room: string): Promise<Message[]> {

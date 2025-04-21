@@ -6,6 +6,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { WsExceptionFilter } from 'src/common/filters/ws-exception.filter';
+import { EncryptionService } from 'src/common/encryption.service';
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({
@@ -24,7 +25,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private users: Map<string, { username: string, room?: string }> = new Map()
 
-  constructor(private chatService: ChatService, private jwtService: JwtService) { }
+  constructor(private chatService: ChatService, private jwtService: JwtService, private readonly encryptionService: EncryptionService,) { }
 
   handleConnection(client: Socket) {
     try {
@@ -106,7 +107,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const messageData = {
       id: savedMessage._id,
       username,
-      content: data.content,
+      content: this.encryptionService.decrypt(data.content),
       timestamp: savedMessage.timestamp,
       room,
     };
