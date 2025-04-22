@@ -142,5 +142,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   }
 
+  sendFile(roomId: string, fileData: any) {
+    this.server.to(roomId).emit('newFile', fileData);
+  }
+
 
 }

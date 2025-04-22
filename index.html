@@ -1,90 +1,93 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>NestJS Chat</title>
-        <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-    
-            #messages { 
-                height: 400px; 
-                overflow-y: scroll; 
-                border: 1px solid #ccc; 
-                padding: 15px;
-                margin-bottom: 15px;
-                border-radius: 5px;
-            }
-    
-            .message { 
-                margin: 8px 0;
-                padding: 8px;
-                background-color: #f0f0f0;
-                border-radius: 4px;
-            }
-    
-            #rooms { 
-                margin-bottom: 15px;
-                padding: 10px;
-                background-color: #f8f8f8;
-                border-radius: 5px;
-            }
-    
-            input[type="text"], input[type="password"] {
-                padding: 8px;
-                margin: 5px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                width: 200px;
-            }
-    
-            button {
-                padding: 8px 15px;
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-    
-            button:hover {
-                background-color: #45a049;
-            }
-    
-            #chat {
-                display: none;
-            }
-    
-            .system-message {
-                color: #666;
-                font-style: italic;
-            }
-    
-            .timestamp {
-                font-size: 0.8em;
-                color: #666;
-            }
-    
-            .username {
-                font-weight: bold;
-                color: #2196F3;
-            }
-    
-            #currentRoom {
-                font-weight: bold;
-                color: #4CAF50;
-                margin-bottom: 10px;
-            }
-    
-            #messageInput {
-                width: 70%;
-            }
-        </style>
-    </head>
+
+<head>
+    <title>NestJS Chat</title>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #messages {
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .message {
+            margin: 8px 0;
+            padding: 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        #rooms {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #chat {
+            display: none;
+        }
+
+        .system-message {
+            color: #666;
+            font-style: italic;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .username {
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        #currentRoom {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        #messageInput {
+            width: 70%;
+        }
+    </style>
+</head>
+
 <body>
     <div id="register">
         <h2>Register</h2>
@@ -112,6 +115,10 @@
         <div class="input-area">
             <input type="text" id="messageInput" placeholder="Type a message" onkeypress="handleKeyPress(event)">
             <button onclick="sendMessage()">Send</button>
+        </div>
+        <div id="fileUpload">
+            <input type="file" id="fileInput">
+            <button onclick="uploadFile()">Upload File</button>
         </div>
     </div>
 
@@ -297,8 +304,41 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file to upload');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('http://localhost:3000/chat/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'File upload failed');
+                }
+
+                alert('File uploaded successfully!');
+                sendMessage(`File shared: <a href="${data.url}" target="_blank">${file.name}</a>`);
+            } catch (error) {
+                console.error('File upload error:', error);
+                alert('File upload failed: ' + error.message);
+            }
+        }
+
         // Mostrar la pantalla de registro al cargar la página
         showRegister();
     </script>
 </body>
+
 </html>
