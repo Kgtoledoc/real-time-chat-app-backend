@@ -4,9 +4,12 @@ import { Logger } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import * as express from 'express';
 import { join } from 'path';
+import * as dotenv from 'dotenv';
 
 async function bootstrap() {
+  dotenv.config();
   const app = await NestFactory.create(AppModule);
+  
 
   const logger = new Logger('Bootstrap');
   app.useGlobalFilters(new AllExceptionsFilter());

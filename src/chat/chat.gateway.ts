@@ -97,7 +97,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new Error('Room name exceeds maximum length of 50 characters');
     }
 
-    const { username, room } = userData;
+    console.log('User data:', userData);
+    console.log('Data:', data);
+
+
+    const { username } = userData;
+    let room = userData.room;
+    if (room == undefined) {
+      room = data.room;
+    }
     const savedMessage = await this.chatService.createMessage(
       username,
       data.content,
@@ -107,7 +115,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const messageData = {
       id: savedMessage._id,
       username,
-      content: this.encryptionService.decrypt(data.content),
+      content: this.encryptionService.decrypt(savedMessage.content),
       timestamp: savedMessage.timestamp,
       room,
     };
