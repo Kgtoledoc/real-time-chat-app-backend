@@ -11,11 +11,8 @@ export class EncryptionService {
     encrypt(text: string): string {
 
         const cipher = crypto.createCipheriv(this.algorithm, Buffer.from(this.key), Buffer.from(this.iv));
-        console.log('Cipher:', cipher);
         let encrypted = cipher.update(text, 'utf8', 'hex');
-
         encrypted += cipher.final('hex');
-        console.log('Encrypted text:', encrypted);
         return encrypted;
     }
 

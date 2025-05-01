@@ -16,7 +16,6 @@ export class ChatService {
         content: string,
         room?: string,
     ): Promise<Message> {
-        console.log('Creating message:', { username, content, room });
         const encryptedContent = this.encryptionService.encrypt(content);
         const newMessage = new this.messageModel({
             username,
@@ -28,7 +27,6 @@ export class ChatService {
     }
 
     async getRecentMessages(room?: string, limit: number = 50): Promise<Message[]> {
-        console.log('Getting recent messages:', { room, limit });
         const query = room ? { room } : {};
         const messages = await this.messageModel.find(query).sort({ timestamp: -1 }).limit(limit).exec()
 
@@ -41,9 +39,7 @@ export class ChatService {
     }
 
     async getRoomMessages(room: string): Promise<Message[]> {
-        console.log('Getting room messages:', { room });
         const messages = await this.messageModel.find({ room }).sort({ timestamp: -1 }).exec()
-        console.log('Messages:', messages);
         return messages.map((message) => ({
             ...message,
             username: message.username,
