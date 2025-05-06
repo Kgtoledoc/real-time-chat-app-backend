@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: real-time-chat-app-backend
+  labels:
+    app: real-time-chat-app-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: real-time-chat-app-backend
+  template:
+    metadata:
+      labels:
+        app: real-time-chat-app-backend
+    spec:
+      containers:
+      - name: real-time-chat-app-backend
+        image: your-docker-image:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
