@@ -94,9 +94,9 @@ nest-chat-app/
 └── README.md
 ```
 ## 🚀 Mejoras Futuras
-Implementar autenticación de usuarios
+Implementar autenticación de usuarios - Se implementa autenticacion.
 
-Agregar persistencia de mensajes con base de datos
+Agregar persistencia de mensajes con base de datos - Se usa base de datos MongoDB.
 
 Soporte para mensajes privados
 
