@@ -98,7 +98,7 @@ Implementar autenticación de usuarios - Se implementa autenticacion.
 
 Agregar persistencia de mensajes con base de datos - Se usa base de datos MongoDB.
 
-Soporte para mensajes privados
+Soporte para mensajes privados - En progreso. Quiero que las personas puedan enviarse mensajes. Que aparezcan las personas que estan en la plataforma de manera online y que pueda seleccionar y luego se abra una ventana de chat para enviar mensaje a esta persona. Quiero que los mensajes con esta persona se guarden en la DB. 
 
 Indicador de escritura
 

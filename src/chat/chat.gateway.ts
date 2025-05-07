@@ -34,16 +34,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!token) {
         throw new UnauthorizedException('Token not provided');
       }
-
       const decoded = this.jwtService.verify(token);
-      console.log('Decoded token:', decoded);
       const user = decoded.username;
-      console.log('User from token:', user);
 
       this.users.set(client.id, { username: user });
-      console.log(`User ${user} connected with ID: ${client.id}`);
+      this.broadcastOnlineUsers();
+      this.logger.log(`User ${user} connected with ID: ${client.id}`);
     } catch (error) {
-      console.error('Error during connection:', error.message);
+      this.logger.error('Error during connection:', error.message);
       client.disconnect();
       throw new UnauthorizedException('Invalid token');
     }
@@ -58,7 +56,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (room) {
         this.server.to(room).emit('userLeft', username);
       }
-      console.log(`User ${username} disconnected with ID: ${client.id}`);
+      this.broadcastOnlineUsers();
+      this.logger.log(`User ${username} disconnected with ID: ${client.id}`);
     }
   }
 
@@ -96,10 +95,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (data.room && data.room.length > 50) {
       throw new Error('Room name exceeds maximum length of 50 characters');
     }
-
-    console.log('User data:', userData);
-    console.log('Data:', data);
-
 
     const { username } = userData;
     let room = userData.room;
@@ -155,7 +150,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('privateMessage')
-  handlePrivateMessage(
+  async handlePrivateMessage(
     @MessageBody() data: { to: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
@@ -166,15 +161,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { username } = userData;
     const recipientSocketId = Array.from(this.users.entries()).find(([_, user]) => user.username === data.to)?.[0];
 
-    if (recipientSocketId) {
-      this.server.to(recipientSocketId).emit('privateMessage', {
-        from: username,
-        content: data.content,
-      });
-    } else {
-      throw new WsException('User not found');
+    if (!recipientSocketId) {
+      throw new WsException('Recipient not connected');
     }
+    await this.chatService.createPrivateMessage(userData.username, data.to, data.content);
 
+    client.to(recipientSocketId).emit('privateMessage', {
+      from: username,
+      content: data.content,
+    });
+
+  }
+
+  private broadcastOnlineUsers() {
+    const onlineUsers = Array.from(this.users.values()).map(user => user.username);
+    this.server.emit('onlineUsers', onlineUsers);
   }
 
 

@@ -51,4 +51,13 @@ export class ChatService {
         return this.messageModel.findByIdAndDelete(id).exec()
     }
 
+    async createPrivateMessage(from: string, to: string, content: string): Promise<Message> {
+        const newMessage = new this.messageModel({
+            username: from,
+            content: content,
+            to,
+        });
+        return newMessage.save()
+    }
+
 }

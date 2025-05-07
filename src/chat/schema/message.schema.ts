@@ -12,6 +12,9 @@ export class Message {
 
   @Prop({ required: true })
   content: string;
+  
+  @Prop()
+  to?: string; // Destinatario del mensaje privado
 
   @Prop({ default: Date.now })
   timestamp: Date;

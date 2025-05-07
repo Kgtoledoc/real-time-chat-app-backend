@@ -125,9 +125,13 @@
             <input type="text" id="recipient" placeholder="Recipient username">
             <input type="text" id="privateMessageInput" placeholder="Type a private message">
             <button onclick="sendPrivateMessage()">Send Private Message</button>
-          </div>
+        </div>
+        <div id="onlineUsers">
+            <h3>Online Users</h3>
+            <ul id="userList"></ul>
+        </div>
     </div>
-    
+
 
     <script>
         let socket;
@@ -136,7 +140,7 @@
         let token = '';
 
         function sendPrivateMessage() {
-            const recipient  = document.getElementById('recipient').value.trim();
+            const recipient = document.getElementById('recipient').value.trim();
             const privateMessageInput = document.getElementById('privateMessageInput').value.trim();
 
             if (!recipient || !privateMessageInput) {
@@ -267,6 +271,17 @@
             socket.on('privateMessage', (data) => {
                 console.log(`Private message from ${data.from}: ${data.content}`);
             });
+
+            socket.on('onlineUsers', (users) => {
+                const userList = document.getElementById('userList');
+                userList.innerHTML = ''; // Limpiar la lista actual
+                users.forEach((user) => {
+                    const userItem = document.createElement('li');
+                    userItem.textContent = user;
+                    userItem.onclick = () => openPrivateChat(user);
+                    userList.appendChild(userItem);
+                });
+            })
         }
 
         function joinRoom() {
@@ -278,6 +293,12 @@
                 updateCurrentRoomDisplay();
                 clearMessages();
             }
+        }
+
+        function openPrivateChat(username) {
+            const recipient = document.getElementById('recipient');
+            recipient.value = username; // Prellenar el campo del destinatario
+            alert(`Starting chat with ${username}`);
         }
 
         function updateCurrentRoomDisplay() {
