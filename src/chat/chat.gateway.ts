@@ -1,4 +1,4 @@
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, OnGatewayConnection, OnGatewayDisconnect, WsException } from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, OnGatewayConnection, OnGatewayDisconnect, WsException, ConnectedSocket } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io'
 import { Logger, UnauthorizedException, UseFilters, UseGuards } from '@nestjs/common';
@@ -152,6 +152,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   sendFile(roomId: string, fileData: any) {
     this.server.to(roomId).emit('newFile', fileData);
+  }
+
+  @SubscribeMessage('privateMessage')
+  handlePrivateMessage(
+    @MessageBody() data: { to: string; content: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userData = this.users.get(client.id);
+    if (!userData) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const { username } = userData;
+    const recipientSocketId = Array.from(this.users.entries()).find(([_, user]) => user.username === data.to)?.[0];
+
+    if (recipientSocketId) {
+      this.server.to(recipientSocketId).emit('privateMessage', {
+        from: username,
+        content: data.content,
+      });
+    } else {
+      throw new WsException('User not found');
+    }
+
   }
 
 

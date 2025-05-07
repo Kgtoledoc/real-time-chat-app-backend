@@ -121,13 +121,32 @@
             <input type="file" id="fileInput">
             <button onclick="uploadFile()">Upload File</button>
         </div>
+        <div id="privateMessage">
+            <input type="text" id="recipient" placeholder="Recipient username">
+            <input type="text" id="privateMessageInput" placeholder="Type a private message">
+            <button onclick="sendPrivateMessage()">Send Private Message</button>
+          </div>
     </div>
+    
 
     <script>
         let socket;
         let currentRoom = '';
         let username = '';
         let token = '';
+
+        function sendPrivateMessage() {
+            const recipient  = document.getElementById('recipient').value.trim();
+            const privateMessageInput = document.getElementById('privateMessageInput').value.trim();
+
+            if (!recipient || !privateMessageInput) {
+                alert('Please enter both recipient and message');
+                return;
+            }
+            socket.emit('privateMessage', { recipient, content: privateMessageInput });
+            console.log(`Private message sent to ${recipient}: ${privateMessageInput}`);
+            document.getElementById('privateMessageInput').value = '';
+        }
 
         async function register() {
             const regUsername = document.getElementById('regUsername').value.trim();
@@ -243,6 +262,10 @@
             socket.on('error', (error) => {
                 console.error('Socket error:', error);
                 alert('An error occurred');
+            });
+
+            socket.on('privateMessage', (data) => {
+                console.log(`Private message from ${data.from}: ${data.content}`);
             });
         }
 
