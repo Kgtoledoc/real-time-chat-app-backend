@@ -173,6 +173,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   }
 
+  @SubscribeMessage('typing')
+  handleTyping(
+    @MessageBody() data: {room?: string, isTyping: boolean},
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userData = this.users.get(client.id);
+    if (!userData) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const { username } = userData;
+    const { room, isTyping } = data;
+    if (room) {
+      // Notificar a los usuarios de la sala que el usuario esta escribiendo
+      this.server.to(room).emit('typing', { username, isTyping });
+    } else {
+      // Notificar a todos los usuarios que el usuario esta escribiendo
+      this.server.emit('typing', { username, isTyping });
+    }
+  }
+
+
+
   private broadcastOnlineUsers() {
     const onlineUsers = Array.from(this.users.values()).map(user => user.username);
     this.server.emit('onlineUsers', onlineUsers);

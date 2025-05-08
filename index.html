@@ -114,7 +114,8 @@
         </div>
         <div id="messages"></div>
         <div class="input-area">
-            <input type="text" id="messageInput" placeholder="Type a message" onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" placeholder="Type a message" oninput="notifyTyping(true)"
+                onblur="notifyTyping(false)" onkeypress="handleKeyPress(event)">
             <button onclick="sendMessage()">Send</button>
         </div>
         <div id="fileUpload">
@@ -130,6 +131,7 @@
             <h3>Online Users</h3>
             <ul id="userList"></ul>
         </div>
+        <div id="typingIndicator" style="font-style: italic; color: gray;"></div>
     </div>
 
 
@@ -138,6 +140,22 @@
         let currentRoom = '';
         let username = '';
         let token = '';
+        let typingTimeout;
+
+        function notifyTyping(isTyping) {
+            const room = currentRoom;
+            if(isTyping) {
+                socket.emit('typing', {room, isTyping});
+
+                // Reiniciar el temporizador de escritura
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    socket.emit('typing', {room, isTyping: false});
+                }, 3000); // Enviar el evento de dejar de escribir después de 3 segundos
+            } else {
+                socket.emit('typing', {room, isTyping: false});
+            }
+        }
 
         function sendPrivateMessage() {
             const recipient = document.getElementById('recipient').value.trim();
@@ -282,6 +300,15 @@
                     userList.appendChild(userItem);
                 });
             })
+
+            socket.on('typing', (data) => {
+                const typingMessage = document.getElementById('typingMessage');
+                if (data.isTyping) {
+                    typingMessage.textContent = `${data.username} is typing...`;
+                } else {
+                    typingMessage.textContent = '';
+                }
+            });
         }
 
         function joinRoom() {
