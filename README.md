@@ -102,11 +102,11 @@ Soporte para mensajes privados - Habiltado. Quiero que las personas puedan envia
 
 Indicador de escritura - Habilitado.
 
-Lista de usuarios en línea
+Lista de usuarios en línea - Habilitado
 
-Soporte para compartir archivos
+Soporte para compartir archivos - Habilitado
 
-Interfaz de usuario mejorada
+Interfaz de usuario mejorada - En Progreso
 
 ## 👥 Contribuir
 Fork el proyecto
