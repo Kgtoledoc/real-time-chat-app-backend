@@ -1,13 +1,41 @@
 import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import multer, { diskStorage } from 'multer';
 import { extname } from 'path';
+import * as AWS from 'aws-sdk';
+import * as multerS3 from 'multer-s3';
 
 @Controller('chat')
 export class ChatController {
+    
+    constructor() {
+        if (process.env.STORAGE_TYPE === 's3') {
+            AWS.config.update({
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                region: process.env.AWS_REGION,
+            });
+        }
+    }   
     @Post('upload')
     @UseInterceptors(FileInterceptor('file', {
-        storage: diskStorage({
+        storage: process.env.STORAGE_TYPE === 's3' ?
+        multerS3({
+            s3:  new AWS.S3({
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                region: process.env.AWS_REGION,
+            }),
+            bucket: process.env.S3_BUCKET_NAME,
+            acl: 'public-read',
+            key: (req, file, callback) => {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+                const ext = extname(file.originalname);
+                const filename = `uploads/${uniqueSuffix}${ext}`;
+                callback(null, filename);
+            }
+        })
+        : diskStorage({
             destination: './uploads',
             filename: (req, file, cb) => {
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -30,10 +58,13 @@ export class ChatController {
         if (!file) {
             throw new BadRequestException('File not uploaded');
         }
+        const fileUrl = process.env.STORAGE_TYPE === 's3' ?
+            `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${file.filename}` :
+            `http://localhost:3000/uploads/${file.filename}`; // Adjust the URL as per your server configuration
         return {
             message: 'File uploaded successfully',
             filename: file.filename,
-            url: `http://localhost:3000/uploads/${file.filename}`, // Adjust the URL as per your server configuration
+            url: fileUrl // Adjust the URL as per your server configuration
         };
     }
 }
