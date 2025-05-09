@@ -9,7 +9,7 @@ import { EncryptionService } from './common/encryption.service';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/chat-app'),
+    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/chat-app'),
     ChatModule,
     UsersModule,
     AuthModule,
